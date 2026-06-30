@@ -1,0 +1,18 @@
+## Archivos temporales de compilación de Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+bin/
+
+## Configuraciones específicas de VS Code
+.settings/
+.project
+.classpath
+.factorypath
+.vscode/
+
+## Archivos del sistema operativo
+Thumbs.db
+Desktop.ini
