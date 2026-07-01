@@ -39,38 +39,33 @@ public class ConexionBD {
     }
 
     /**
-     * Simulación y testing del motor transaccional del backend usando tipos de datos monetarios correctos.
+     * Simulación global de la capa de Servicio con desglose de IVA integrado.
      */
     public static void main(String[] args) {
-        System.out.println("Iniciando entorno de pruebas transaccionales...");
+        System.out.println("Iniciando entorno de pruebas con cálculo impositivo...");
         
-        FacturaDAO facturaDao = new FacturaDAO();
+        FacturacionService facturacionService = new FacturacionService();
 
-        // 1. Configurar datos del encabezado basados en el seed data[cite: 1]
-        int idCliente = 1; 
-        int idUsuario = 1; 
-        String tipoPago = "EFECTIVO";
+        // Datos de control para el comprobante[cite: 1]
+        String correlativoDTE = "DTE-2026-10065";
+        int idCliente = 1; // Consumidor Final[cite: 1]
+        int idCajero = 1;  // Administrador[cite: 1]
+        String formaPago = "EFECTIVO";
 
-        // --- PRUEBA 1: SIMULANDO VENTA EXITOSA (Dentro del Stock) ---
-        System.out.println("\n--- SIMULANDO VENTA EXITOSA (Dentro del Stock) ---");
-        String numeroDTE1 = "DTE-2026-00001";
-        BigDecimal totalFactura1 = new BigDecimal("15.00"); // 10 unidades * $1.50
-
-        List<FacturaDAO.DetalleVentaDTO> detalleVenta1 = new ArrayList<>();
-        // Pasamos: id_producto, cantidad, precio_unitario como BigDecimal[cite: 1]
-        detalleVenta1.add(new FacturaDAO.DetalleVentaDTO(1, 10, new BigDecimal("1.50")));
-
-        facturaDao.registrarVentaCompleta(numeroDTE1, idCliente, idUsuario, tipoPago, totalFactura1, detalleVenta1);
-
-        // --- PRUEBA 2: SIMULANDO VENTA FALLIDA (Excediendo el Stock) ---
-        System.out.println("\n--- SIMULANDO VENTA FALLIDA (Excediendo el Stock para probar el Trigger) ---");
-        String numeroDTE2 = "DTE-2026-00002";
-        BigDecimal totalFactura2 = new BigDecimal("225.00"); // 150 unidades * $1.50
-
-        List<FacturaDAO.DetalleVentaDTO> detalleVenta2 = new ArrayList<>();
-        // Tu script inserta 100 unidades iniciales; solicitar 150 activará la excepción de tu trigger[cite: 1]
-        detalleVenta2.add(new FacturaDAO.DetalleVentaDTO(1, 150, new BigDecimal("1.50")));
+        // Simulamos un carrito de compras
+        List<FacturacionService.ItemCarritoDTO> carrito = new ArrayList<>();
         
-        facturaDao.registrarVentaCompleta(numeroDTE2, idCliente, idUsuario, tipoPago, totalFactura2, detalleVenta2);
+        // Compramos 3 unidades del Producto 1 (Precio: $1.50 c/u)[cite: 1]
+        // Total de la operación debería ser $4.50
+        carrito.add(new FacturacionService.ItemCarritoDTO(1, 3, new BigDecimal("1.50")));
+
+        System.out.println("\n--- PROCESANDO CARRITO EN EL SERVICE CAPA ---");
+        boolean exito = facturacionService.procesarNuevaVenta(correlativoDTE, idCliente, idCajero, formaPago, carrito);
+
+        if (exito) {
+            System.out.println("\n🎉 ¡Cálculo de impuestos verificado e insertado correctamente!");
+        } else {
+            System.err.println("\n⚠️ Error al procesar la venta con impuestos.");
+        }
     }
 }
