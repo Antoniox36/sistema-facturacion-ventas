@@ -41,176 +41,172 @@ public class MainView extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        // --- 1. BARRA SUPERIOR: Información de Sesión ---
+        // --- 1. BARRA SUPERIOR (ENCABEZADO) ---
         JPanel panelSuperior = new JPanel(new BorderLayout());
-        panelSuperior.setBackground(new Color(25, 118, 210)); 
-        panelSuperior.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        panelSuperior.setBackground(new Color(25, 118, 210));
+        panelSuperior.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
 
-        JLabel lblSistema = new JLabel("PUNTO DE VENTA Y FACTURACIÓN");
-        lblSistema.setForeground(Color.WHITE);
-        lblSistema.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        JLabel lblLogo = new JLabel("🚀 CONSOLE ERP SYSTEM");
+        lblLogo.setForeground(Color.WHITE);
+        lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        panelSuperior.add(lblLogo, BorderLayout.WEST);
 
-        String infoCajero = "Cajero: " + usuarioActivo.getNombreCompleto() + " [" + usuarioActivo.getNombreRol() + "]";
-        JLabel lblUsuario = new JLabel(infoCajero);
+        JPanel panelInfoUsuario = new JPanel(new GridLayout(2, 1));
+        panelInfoUsuario.setBackground(new Color(25, 118, 210));
+        
+        JLabel lblUsuario = new JLabel("Cajero: " + usuarioActivo.getNombreCompleto() + " (" + usuarioActivo.getNombreRol() + ")", SwingConstants.RIGHT);
         lblUsuario.setForeground(Color.WHITE);
-        lblUsuario.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblUsuario.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        JLabel lblFecha = new JLabel("Ingreso: " + dtf.format(LocalDateTime.now()), SwingConstants.RIGHT);
+        lblFecha.setForeground(new Color(224, 224, 224));
+        lblFecha.setFont(new Font("Segoe UI", Font.ITALIC, 11));
 
-        panelSuperior.add(lblSistema, BorderLayout.WEST);
-        panelSuperior.add(lblUsuario, BorderLayout.EAST);
+        panelInfoUsuario.add(lblUsuario);
+        panelInfoUsuario.add(lblFecha);
+        panelSuperior.add(panelInfoUsuario, BorderLayout.EAST);
+
         add(panelSuperior, BorderLayout.NORTH);
 
-        // --- 2. MENÚ LATERAL IZQUIERDO ---
-        JPanel panelLateral = new JPanel(new GridLayout(6, 1, 10, 15));
-        panelLateral.setBackground(new Color(245, 245, 245));
-        panelLateral.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
-        panelLateral.setPreferredSize(new Dimension(200, 0));
+        // --- 2. BARRA LATERAL IZQUIERDA (MENÚ NAVEGACIÓN COMPLETAMENTE FORZADO) ---
+        JPanel panelMenuLateral = new JPanel();
+        panelMenuLateral.setLayout(new BoxLayout(panelMenuLateral, BoxLayout.Y_AXIS));
+        panelMenuLateral.setBackground(new Color(33, 33, 33)); // Fondo oscuro del contenedor lateral
+        panelMenuLateral.setPreferredSize(new Dimension(210, 0));
+        panelMenuLateral.setBorder(BorderFactory.createEmptyBorder(20, 12, 20, 12));
 
-        JButton btnNuevaVenta = new JButton("Nueva Venta");
-        JButton btnHistorial = new JButton("Historial Ventas");
-        JButton btnProductos = new JButton("Inventario");
-        JButton btnClientes = new JButton("Clientes");
-        JButton btnCerrarSesion = new JButton("Cerrar Sesión");
+        String[] opcionesMenu = {"Nueva Venta", "Inventario", "Clientes", "Reportes", "Configuración"};
+        for (String opcion : opcionesMenu) {
+            
+            // Usamos una subclase anónima de JButton para anular el pintado nativo del LookAndFeel de Windows
+            JButton btnMenu = new JButton(opcion) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    
+                    // Forzamos el fondo oscuro nítido para el botón
+                    g2.setColor(new Color(55, 55, 55));
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+                    
+                    // Pintamos el texto encima con máxima calidad y contraste
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                    int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(getText(), x, y);
+                    
+                    g2.dispose();
+                }
+            };
+            
+            // Dimensiones uniformes
+            btnMenu.setMaximumSize(new Dimension(185, 42));
+            btnMenu.setPreferredSize(new Dimension(185, 42));
+            btnMenu.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            // Propiedades de la Fuente (Letra grande, blanca y clara)
+            btnMenu.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            btnMenu.setForeground(Color.WHITE);
+            
+            // Desactivar decoraciones nativas que causan transparencia o errores de renderizado
+            btnMenu.setOpaque(false);
+            btnMenu.setContentAreaFilled(false);
+            btnMenu.setBorderPainted(true);
+            btnMenu.setFocusPainted(false);
+            
+            // Borde perimetral fino para darle un acabado elegante
+            btnMenu.setBorder(BorderFactory.createLineBorder(new Color(80, 80, 80), 1));
+            btnMenu.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        Font fontBotones = new Font("Segoe UI", Font.BOLD, 13);
-        btnNuevaVenta.setFont(fontBotones);
-        btnHistorial.setFont(fontBotones);
-        btnProductos.setFont(fontBotones);
-        btnClientes.setFont(fontBotones);
-        btnCerrarSesion.setFont(fontBotones);
-        btnCerrarSesion.setForeground(new Color(183, 28, 28));
+            // Manejo dinámico de las vistas del CardLayout
+            btnMenu.addActionListener(e -> {
+                String comando = e.getActionCommand();
+                if (comando.equals("Inventario")) {
+                    cargarDatosInventario(""); // Refrescar stock al entrar
+                    cardLayout.show(panelCentralCartas, "Inventario");
+                } else if (comando.equals("Nueva Venta")) {
+                    cardLayout.show(panelCentralCartas, "NuevaVenta");
+                } else {
+                    cardLayout.show(panelCentralCartas, comando);
+                }
+            });
 
-        panelLateral.add(btnNuevaVenta);
-        panelLateral.add(btnHistorial);
-        panelLateral.add(btnProductos);
-        panelLateral.add(btnClientes);
-        panelLateral.add(new JLabel("")); 
-        panelLateral.add(btnCerrarSesion);
-        add(panelLateral, BorderLayout.WEST);
+            panelMenuLateral.add(btnMenu);
+            panelMenuLateral.add(Box.createRigidArea(new Dimension(0, 12))); // Espacio vertical entre botones
+        }
 
-        // --- 3. PANEL CENTRAL: CardLayout ---
+        add(panelMenuLateral, BorderLayout.WEST);
+
+        // --- 3. PANEL CENTRAL CONTENEDOR (CARDLAYOUT MULTIPANTALLA) ---
         cardLayout = new CardLayout();
         panelCentralCartas = new JPanel(cardLayout);
 
-        // Instanciación de los paneles estáticos y dinámicos
-        JPanel panelBienvenida = crearPanelMensaje("¡Bienvenido al Panel de Control!", 
-                "Selecciona una opción del menú de la izquierda para comenzar a trabajar.");
-        
-        JPanel panelNuevaVenta = crearPanelMensaje("🛒 Módulo de Nueva Venta", 
-                "Espacio de trabajo listo para el carrito de compras e integración de IVA.");
-        
-        JPanel panelHistorial = crearPanelMensaje("📊 Historial de Ventas", 
-                "Aquí se consultarán los documentos de facturación emitidos desde PostgreSQL.");
-        
-        // CARTA DINÁMICA: Cargamos el inventario real conectado a la BD
-        JPanel panelInventario = crearPanelInventario();
-        
-        JPanel panelClientes = crearPanelMensaje("👥 Registro de Clientes", 
-                "Búsqueda y gestión de datos fiscales para Consumidor Final o Crédito Fiscal.");
-
-        panelCentralCartas.add(panelBienvenida, "BIENVENIDA");
-        panelCentralCartas.add(panelNuevaVenta, "VENTA");
-        panelCentralCartas.add(panelHistorial, "HISTORIAL");
-        panelCentralCartas.add(panelInventario, "INVENTARIO");
-        panelCentralCartas.add(panelClientes, "CLIENTES");
+        // Registro de los Paneles Modulares en el CardLayout
+        panelCentralCartas.add(crearPanelInventario(), "Inventario");
+        panelCentralCartas.add(new PanelNuevaVenta(), "NuevaVenta"); 
+        panelCentralCartas.add(crearPanelMensaje("Módulo de Clientes", "Administración de cuentas corrientes y NRC de contribuyentes."), "Clientes");
+        panelCentralCartas.add(crearPanelMensaje("Módulo de Reportes", "Auditoría de cierres de caja (X/Z) y libros de IVA correspondientes."), "Reportes");
+        panelCentralCartas.add(crearPanelMensaje("Módulo de Configuración", "Parámetros globales del sistema e integración de llaves API Hacienda."), "Configuración");
 
         add(panelCentralCartas, BorderLayout.CENTER);
 
-        // --- 4. BARRA INFERIOR ---
-        JPanel panelInferior = new JPanel(new BorderLayout());
-        panelInferior.setBackground(new Color(230, 235, 240));
-        panelInferior.setBorder(BorderFactory.createEmptyBorder(5, 20, 5, 20));
-
-        JLabel lblEstadoBD = new JLabel("● Conexión Establecida con PostgreSQL (db_facturacion_ventas)");
-        lblEstadoBD.setForeground(new Color(46, 125, 50));
-        lblEstadoBD.setFont(new Font("Segoe UI", Font.BOLD, 12));
-
-        String fechaActual = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-        JLabel lblFecha = new JLabel("Fecha de Sesión: " + fechaActual);
-        lblFecha.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblFecha.setForeground(Color.DARK_GRAY);
-
-        panelInferior.add(lblEstadoBD, BorderLayout.WEST);
-        panelInferior.add(lblFecha, BorderLayout.EAST);
-        add(panelInferior, BorderLayout.SOUTH);
-
-        // --- NAVEGACIÓN ENTRE CARTAS ---
-        btnNuevaVenta.addActionListener(e -> cardLayout.show(panelCentralCartas, "VENTA"));
-        btnHistorial.addActionListener(e -> cardLayout.show(panelCentralCartas, "HISTORIAL"));
-        btnProductos.addActionListener(e -> {
-            cargarDatosInventario(""); // Refrescar la tabla al entrar a la pestaña
-            cardLayout.show(panelCentralCartas, "INVENTARIO");
-        });
-        btnClientes.addActionListener(e -> cardLayout.show(panelCentralCartas, "CLIENTES"));
-
-        btnCerrarSesion.addActionListener(e -> {
-            int respuesta = JOptionPane.showConfirmDialog(this, 
-                "¿Está seguro que desea cerrar la sesión actual?", 
-                "Cerrar Sesión", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-            
-            if (respuesta == JOptionPane.YES_OPTION) {
-                this.dispose();
-                SwingUtilities.invokeLater(() -> new LoginView().setVisible(true));
-            }
-        });
+        // Mostrar por defecto el módulo de Inventario al levantar el sistema
+        cardLayout.show(panelCentralCartas, "Inventario");
     }
 
-    /**
-     * Construye de manera limpia la interfaz del módulo de Inventario.
-     */
     private JPanel crearPanelInventario() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        // --- Sub-panel Superior: Filtros de Búsqueda ---
-        JPanel panelBusqueda = new JPanel(new BorderLayout(10, 0));
-        panelBusqueda.setBackground(Color.WHITE);
+        // Subpanel Superior: Filtro interactivo de búsqueda
+        JPanel panelFiltro = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        panelFiltro.setBackground(Color.WHITE);
+        panelFiltro.add(new JLabel("Filtrar Producto:"));
 
-        JLabel lblBuscar = new JLabel("Buscar Producto:");
-        lblBuscar.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        txtBuscarProducto = new JTextField(25);
+        txtBuscarProducto.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         
-        txtBuscarProducto = new JTextField();
-        txtBuscarProducto.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        // Listener para buscar al presionar ENTER en la caja de texto
+        txtBuscarProducto.addActionListener(e -> cargarDatosInventario(txtBuscarProducto.getText().trim()));
+        
+        JButton btnBuscar = new JButton("Buscar");
+        btnBuscar.setBackground(new Color(25, 118, 210));
+        btnBuscar.setForeground(Color.WHITE);
+        btnBuscar.addActionListener(e -> cargarDatosInventario(txtBuscarProducto.getText().trim()));
 
-        JButton btnBuscar = new JButton("Buscar / Filtrar");
-        btnBuscar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        panelFiltro.add(txtBuscarProducto);
+        panelFiltro.add(btnBuscar);
+        panel.add(panelFiltro, BorderLayout.NORTH);
 
-        panelBusqueda.add(lblBuscar, BorderLayout.WEST);
-        panelBusqueda.add(txtBuscarProducto, BorderLayout.CENTER);
-        panelBusqueda.add(btnBuscar, BorderLayout.EAST);
-        panel.add(panelBusqueda, BorderLayout.NORTH);
-
-        // --- Sub-panel Central: Tabla de Datos de PostgreSQL ---
-        String[] columnas = {"ID", "Código de Barras", "Descripción", "Precio de Venta", "Stock Existente"};
+        // Estructura de la Tabla del Inventario
+        String[] columnas = {"ID", "Código Barras", "Descripción del Artículo", "Precio Venta (IVA Inc.)", "Stock Físico"};
         modeloTabla = new DefaultTableModel(columnas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Deshabilitar edición directa de celdas por seguridad
+                return false; 
             }
         };
 
         tablaInventario = new JTable(modeloTabla);
         tablaInventario.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        tablaInventario.setRowHeight(24);
+        tablaInventario.setRowHeight(22);
         tablaInventario.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        tablaInventario.getTableHeader().setBackground(new Color(238, 238, 238));
+        tablaInventario.setGridColor(new Color(224, 224, 224));
 
-        JScrollPane scrollTabla = new JScrollPane(tablaInventario);
-        panel.add(scrollTabla, BorderLayout.CENTER);
-
-        // --- EVENTOS DEL BUSCADOR ---
-        btnBuscar.addActionListener(e -> cargarDatosInventario(txtBuscarProducto.getText().trim()));
-        txtBuscarProducto.addActionListener(e -> cargarDatosInventario(txtBuscarProducto.getText().trim()));
+        JScrollPane scrollPane = new JScrollPane(tablaInventario);
+        panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
     }
 
-    /**
-     * Consume el ProductoDAO para vaciar y refrescar los registros de la base de datos dentro de la JTable.
-     */
     private void cargarDatosInventario(String criterio) {
         if (modeloTabla == null) return;
 
-        // Limpiar filas viejas de la tabla para evitar duplicaciones visuales
         modeloTabla.setRowCount(0);
 
         System.out.println("🔄 Solicitando actualización de tabla inventario con criterio: '" + criterio + "'");
@@ -243,6 +239,7 @@ public class MainView extends JFrame {
 
         panel.add(lblTitulo, BorderLayout.CENTER);
         panel.add(lblSubtitulo, BorderLayout.SOUTH);
+
         return panel;
     }
 }
