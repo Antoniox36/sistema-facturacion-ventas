@@ -1,30 +1,39 @@
 package vista;
 
+import conexion.ProductoDAO;
 import conexion.UsuarioDAO;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * Pantalla Principal del Sistema de Facturación y Ventas (Dashboard).
- * Incorpora un diseño interactivo basado en CardLayout para cambiar paneles centrales.
+ * Incorpora la renderización de la tabla de inventario en tiempo real con PostgreSQL.
  */
 public class MainView extends JFrame {
 
     private final UsuarioDAO.Usuario usuarioActivo;
-    private JPanel panelCentralCartas; // Contenedor principal con CardLayout
+    private final ProductoDAO productoDAO;
+    
+    private JPanel panelCentralCartas; 
     private CardLayout cardLayout;
+    
+    // Componentes del módulo de Inventario
+    private JTable tablaInventario;
+    private DefaultTableModel modeloTabla;
+    private JTextField txtBuscarProducto;
 
     public MainView(UsuarioDAO.Usuario usuario) {
         this.usuarioActivo = usuario;
+        this.productoDAO = new ProductoDAO(); // Instanciamos el DAO de productos
         initComponentes();
+        cargarDatosInventario(""); // Carga inicial de datos al levantar el sistema
     }
 
-    /**
-     * Inicializa y estructura el diseño del espacio de trabajo del sistema.
-     */
     private void initComponentes() {
         setTitle("Sistema de Facturación - Panel Principal");
         setSize(1024, 650);
@@ -32,9 +41,9 @@ public class MainView extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        // --- 1. BARRA SUPERIOR: Información de Sesión Activa ---
+        // --- 1. BARRA SUPERIOR: Información de Sesión ---
         JPanel panelSuperior = new JPanel(new BorderLayout());
-        panelSuperior.setBackground(new Color(25, 118, 210)); // Azul corporativo
+        panelSuperior.setBackground(new Color(25, 118, 210)); 
         panelSuperior.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         JLabel lblSistema = new JLabel("PUNTO DE VENTA Y FACTURACIÓN");
@@ -50,7 +59,7 @@ public class MainView extends JFrame {
         panelSuperior.add(lblUsuario, BorderLayout.EAST);
         add(panelSuperior, BorderLayout.NORTH);
 
-        // --- 2. MENÚ LATERAL IZQUIERDO: Accesos Rápidos ---
+        // --- 2. MENÚ LATERAL IZQUIERDO ---
         JPanel panelLateral = new JPanel(new GridLayout(6, 1, 10, 15));
         panelLateral.setBackground(new Color(245, 245, 245));
         panelLateral.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
@@ -74,35 +83,30 @@ public class MainView extends JFrame {
         panelLateral.add(btnHistorial);
         panelLateral.add(btnProductos);
         panelLateral.add(btnClientes);
-        panelLateral.add(new JLabel("")); // Espaciador estético
+        panelLateral.add(new JLabel("")); 
         panelLateral.add(btnCerrarSesion);
         add(panelLateral, BorderLayout.WEST);
 
-        // --- 3. PANEL CENTRAL: CardLayout (Mazo de Pantallas) ---
+        // --- 3. PANEL CENTRAL: CardLayout ---
         cardLayout = new CardLayout();
         panelCentralCartas = new JPanel(cardLayout);
 
-        // Carta 1: Vista de Bienvenida por defecto
+        // Instanciación de los paneles estáticos y dinámicos
         JPanel panelBienvenida = crearPanelMensaje("¡Bienvenido al Panel de Control!", 
                 "Selecciona una opción del menú de la izquierda para comenzar a trabajar.");
         
-        // Carta 2: Marcador para Nueva Venta
         JPanel panelNuevaVenta = crearPanelMensaje("🛒 Módulo de Nueva Venta", 
                 "Espacio de trabajo listo para el carrito de compras e integración de IVA.");
         
-        // Carta 3: Marcador para Historial de Ventas
         JPanel panelHistorial = crearPanelMensaje("📊 Historial de Ventas", 
                 "Aquí se consultarán los documentos de facturación emitidos desde PostgreSQL.");
         
-        // Carta 4: Marcador para Inventario
-        JPanel panelInventario = crearPanelMensaje("📦 Control de Inventario", 
-                "Lista de productos disponibles vinculados al Trigger de actualización automática.");
+        // CARTA DINÁMICA: Cargamos el inventario real conectado a la BD
+        JPanel panelInventario = crearPanelInventario();
         
-        // Carta 5: Marcador para Clientes
         JPanel panelClientes = crearPanelMensaje("👥 Registro de Clientes", 
                 "Búsqueda y gestión de datos fiscales para Consumidor Final o Crédito Fiscal.");
 
-        // Añadimos todas las "cartas" al panel contenedor asignándoles un identificador único de texto
         panelCentralCartas.add(panelBienvenida, "BIENVENIDA");
         panelCentralCartas.add(panelNuevaVenta, "VENTA");
         panelCentralCartas.add(panelHistorial, "HISTORIAL");
@@ -111,7 +115,7 @@ public class MainView extends JFrame {
 
         add(panelCentralCartas, BorderLayout.CENTER);
 
-        // --- 4. BARRA INFERIOR: Estado del Sistema ---
+        // --- 4. BARRA INFERIOR ---
         JPanel panelInferior = new JPanel(new BorderLayout());
         panelInferior.setBackground(new Color(230, 235, 240));
         panelInferior.setBorder(BorderFactory.createEmptyBorder(5, 20, 5, 20));
@@ -129,10 +133,13 @@ public class MainView extends JFrame {
         panelInferior.add(lblFecha, BorderLayout.EAST);
         add(panelInferior, BorderLayout.SOUTH);
 
-        // --- INTERCONEXIÓN DE ACCIONES Y EVENTOS ---
+        // --- NAVEGACIÓN ENTRE CARTAS ---
         btnNuevaVenta.addActionListener(e -> cardLayout.show(panelCentralCartas, "VENTA"));
         btnHistorial.addActionListener(e -> cardLayout.show(panelCentralCartas, "HISTORIAL"));
-        btnProductos.addActionListener(e -> cardLayout.show(panelCentralCartas, "INVENTARIO"));
+        btnProductos.addActionListener(e -> {
+            cargarDatosInventario(""); // Refrescar la tabla al entrar a la pestaña
+            cardLayout.show(panelCentralCartas, "INVENTARIO");
+        });
         btnClientes.addActionListener(e -> cardLayout.show(panelCentralCartas, "CLIENTES"));
 
         btnCerrarSesion.addActionListener(e -> {
@@ -148,8 +155,79 @@ public class MainView extends JFrame {
     }
 
     /**
-     * Método utilitario para construir paneles informativos genéricos de forma rápida.
+     * Construye de manera limpia la interfaz del módulo de Inventario.
      */
+    private JPanel crearPanelInventario() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // --- Sub-panel Superior: Filtros de Búsqueda ---
+        JPanel panelBusqueda = new JPanel(new BorderLayout(10, 0));
+        panelBusqueda.setBackground(Color.WHITE);
+
+        JLabel lblBuscar = new JLabel("Buscar Producto:");
+        lblBuscar.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        
+        txtBuscarProducto = new JTextField();
+        txtBuscarProducto.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        JButton btnBuscar = new JButton("Buscar / Filtrar");
+        btnBuscar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+
+        panelBusqueda.add(lblBuscar, BorderLayout.WEST);
+        panelBusqueda.add(txtBuscarProducto, BorderLayout.CENTER);
+        panelBusqueda.add(btnBuscar, BorderLayout.EAST);
+        panel.add(panelBusqueda, BorderLayout.NORTH);
+
+        // --- Sub-panel Central: Tabla de Datos de PostgreSQL ---
+        String[] columnas = {"ID", "Código de Barras", "Descripción", "Precio de Venta", "Stock Existente"};
+        modeloTabla = new DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Deshabilitar edición directa de celdas por seguridad
+            }
+        };
+
+        tablaInventario = new JTable(modeloTabla);
+        tablaInventario.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        tablaInventario.setRowHeight(24);
+        tablaInventario.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        JScrollPane scrollTabla = new JScrollPane(tablaInventario);
+        panel.add(scrollTabla, BorderLayout.CENTER);
+
+        // --- EVENTOS DEL BUSCADOR ---
+        btnBuscar.addActionListener(e -> cargarDatosInventario(txtBuscarProducto.getText().trim()));
+        txtBuscarProducto.addActionListener(e -> cargarDatosInventario(txtBuscarProducto.getText().trim()));
+
+        return panel;
+    }
+
+    /**
+     * Consume el ProductoDAO para vaciar y refrescar los registros de la base de datos dentro de la JTable.
+     */
+    private void cargarDatosInventario(String criterio) {
+        if (modeloTabla == null) return;
+
+        // Limpiar filas viejas de la tabla para evitar duplicaciones visuales
+        modeloTabla.setRowCount(0);
+
+        System.out.println("🔄 Solicitando actualización de tabla inventario con criterio: '" + criterio + "'");
+        List<ProductoDAO.Producto> productos = productoDAO.listarProductos(criterio);
+
+        for (ProductoDAO.Producto p : productos) {
+            Object[] fila = {
+                p.getIdProducto(),
+                p.getCodigoBarras(),
+                p.getDescripcion(),
+                "$" + p.getPrecioVenta(),
+                p.getStock()
+            };
+            modeloTabla.addRow(fila);
+        }
+    }
+
     private JPanel crearPanelMensaje(String titulo, String subtitulo) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
